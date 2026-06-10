@@ -50,6 +50,10 @@ func setupRouter() *gin.Engine {
 		})
 	})
 
+	r.GET("/version", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"version": string("dev:" + Version)})
+	})
+
 	return r
 }
 

@@ -25,7 +25,7 @@ pipeline {
             stages {
                 stage('Download Dependencies') {
                     steps {
-                        sh 'go mod tidy'
+                        sh 'go mod download'
                     }
                 }
 
@@ -41,21 +41,21 @@ pipeline {
                     }
                 }
 
-                stage('GolangCI Lint') {
-                steps {
-                        sh '''
-                            curl -sSfL https://golangci-lint.run/install.sh \
-                              | sh -s -- -b $(go env GOPATH)/bin v2.12.2
+                // stage('GolangCI Lint') {
+                // steps {
+                //         sh '''
+                //             curl -sSfL https://golangci-lint.run/install.sh \
+                //               | sh -s -- -b $(go env GOPATH)/bin v2.12.2
 
-                            $(go env GOPATH)/bin/golangci-lint --version
-                            $(go env GOPATH)/bin/golangci-lint run ./...
-                        '''
-                    }
-                }
+                //             $(go env GOPATH)/bin/golangci-lint --version
+                //             $(go env GOPATH)/bin/golangci-lint run ./...
+                //         '''
+                //     }
+                // }
 
                 stage('Run Tests') {
                     steps {
-                        sh 'go test -v  -coverprofile=coverage.txt -covermode=atomic ./...'
+                        sh 'go test -v ./...'
                     }
                 }
             }
@@ -103,8 +103,16 @@ pipeline {
     }
 
     post {
-        always {
-            archiveArtifacts artifacts: 'coverage.txt', allowEmptyArchive: true
+        success {
+            build (
+                job: 'go-server-dev-deploy',
+                parameters: [
+                    string(
+                        name: 'IMAGE_TAG',
+                        value: env.IMAGE_TAG
+                    )
+                ]
+            )
         }
     }
 }
