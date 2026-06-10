@@ -1,0 +1,10 @@
+# Ignore version control files
+.git
+.gitignore
+
+# Ignore Docker files
+Dockerfile
+.dockerignore
+
+# Ignore test files
+*_test.go
