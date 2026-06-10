@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'johnwickk/go-server'
+        IMAGE_NAME = 'johnwickk99/go-server'
     }
 
     options {
@@ -85,7 +85,7 @@ pipeline {
                                 script {
                                     docker.withRegistry(
                                         'https://index.docker.io/v1/',
-                                        'dockerhub-creds'
+                                        'dockerhub-cred'
                                     ) {
 
                                         def image = docker.image(

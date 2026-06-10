@@ -29,7 +29,7 @@ WORKDIR /app
 COPY --from=builder /app/server .
 
 # Copy the default .env configuration file
-COPY --from=builder /app/.env .
+COPY --from=builder /app/.env.example .
 
 # Expose port 8080
 EXPOSE 8080
