@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = 'johnwickk/go-server'
+    }
+
     options {
         timeout(time: 15, unit: 'MINUTES')
     }
@@ -56,6 +60,46 @@ pipeline {
                 }
             }
         }
+        stage('Build Docker Image') {
+                            steps {
+                                script {
+                                    env.SHORT_SHA = sh(
+                                        script: 'git rev-parse --short=8 HEAD',
+                                        returnStdout: true
+                                    ).trim()
+
+                                    env.IMAGE_TAG = "dev-${env.SHORT_SHA}"
+
+                                    echo "Building image: ${IMAGE_NAME}:${IMAGE_TAG}"
+
+                                    docker.build(
+                                        "${IMAGE_NAME}:${IMAGE_TAG}",
+                                        "."
+                                    )
+                                }
+                            }
+                        }
+
+                        stage('Push Docker Image') {
+                            steps {
+                                script {
+                                    docker.withRegistry(
+                                        'https://index.docker.io/v1/',
+                                        'dockerhub-creds'
+                                    ) {
+
+                                        def image = docker.image(
+                                            "${IMAGE_NAME}:${IMAGE_TAG}"
+                                        )
+
+                                        image.push()
+
+                                        // Optional moving tag
+                                        image.push('dev')
+                                    }
+                                }
+                            }
+                        }
     }
 
     post {
