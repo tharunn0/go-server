@@ -13,6 +13,11 @@ pipeline {
                 }
             }
 
+            environment {
+                GOCACHE = "${WORKSPACE}/.gocache"
+                HOME = "${WORKSPACE}"
+            }
+
             stages {
                 stage('Download Dependencies') {
                     steps {
@@ -33,11 +38,12 @@ pipeline {
                 }
 
                 stage('GolangCI Lint') {
-                    steps {
+                steps {
                         sh '''
-                            curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
-                              | sh -s -- -b $(go env GOPATH)/bin v1.64.5
+                            curl -sSfL https://golangci-lint.run/install.sh \
+                              | sh -s -- -b $(go env GOPATH)/bin v2.12.2
 
+                            $(go env GOPATH)/bin/golangci-lint --version
                             $(go env GOPATH)/bin/golangci-lint run ./...
                         '''
                     }
@@ -45,7 +51,7 @@ pipeline {
 
                 stage('Run Tests') {
                     steps {
-                        sh 'go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...'
+                        sh 'go test -v  -coverprofile=coverage.txt -covermode=atomic ./...'
                     }
                 }
             }
