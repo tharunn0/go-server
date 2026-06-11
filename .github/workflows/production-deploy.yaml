@@ -1,0 +1,40 @@
+name: Production Deploy
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+concurrency:
+  group: prod-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy-prod:
+    name: Deploy Image to Production Server
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: SSH into Production Server
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PROD_SERVER_IP }}
+          username: ubuntu
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
+
+            docker pull ghcr.io/${{ github.repository_owner }}/go-server:dev-latest || exit 1
+
+            docker stop go-server-prod || true
+            docker rm go-server-prod || true
+
+            docker run --name go-server-prod -d \
+              --restart unless-stopped \
+              -p 80:8080 \
+              ghcr.io/${{ github.repository_owner }}/go-server:dev-latest
+
+            docker image prune -f
