@@ -13,7 +13,7 @@ pipeline {
         stage('CI Env') {
             agent {
                 docker {
-                    image 'golang:1.25.3'
+                    image 'golang:1.25.11'
                 }
             }
 
