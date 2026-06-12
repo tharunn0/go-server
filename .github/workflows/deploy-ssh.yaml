@@ -1,0 +1,51 @@
+name: SSH Deployment
+
+on:
+  workflow_call:
+    inputs:
+      host:
+        required: true
+        type: string
+      username:
+        required: true
+        type: string
+      container_name:
+        required: true
+        type: string
+      image_tag:
+        required: true
+        type: string
+      registry:
+        required: false
+        type: string
+        default: ghcr.io
+    secrets:
+      ssh_key:
+        required: true
+      ghcr_pat:
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: SSH into target server
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ inputs.host }}
+          username: ${{ inputs.username }}
+          key: ${{ secrets.ssh_key }}
+          script: |
+            echo "${{ secrets.ghcr_pat }}" | docker login ${{ inputs.registry }} -u ${{ github.repository_owner }} --password-stdin
+
+            docker pull ${{ inputs.registry }}/${{ github.repository_owner }}/go-server:${{ inputs.image_tag }} || exit 1
+
+            docker stop ${{ inputs.container_name }} || true
+            docker rm ${{ inputs.container_name }} || true
+
+            docker run --name ${{ inputs.container_name }} -d \
+              --restart unless-stopped \
+              -p 8080:8080 \
+              ${{ inputs.registry }}/${{ github.repository_owner }}/go-server:${{ inputs.image_tag }}
+
+            docker image prune -f

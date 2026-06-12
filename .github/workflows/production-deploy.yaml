@@ -11,38 +11,25 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy-prod:
-    name: Deploy Image to Production Server
+  get-commit:
+    name: Get commit
     runs-on: ubuntu-24.04
-
+    outputs:
+      commit_hash: ${{ steps.vars.outputs.COMMIT_HASH }}
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - id: vars
+        run: echo "COMMIT_HASH=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
 
-      - name: Get CI-Matching Hash
-        id: vars
-        run: |
-          echo "COMMIT_HASH=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
-
-      - name: SSH into Production Server
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.PROD_SERVER_IP }}
-          username: admin
-          key: ${{ secrets.PROD_SSH_KEY }}
-          script: |
-            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
-
-            IMAGE_TAG="dev-${{ steps.vars.outputs.COMMIT_HASH }}"
-
-            docker pull ghcr.io/${{ github.repository_owner }}/go-server:$IMAGE_TAG || exit 1
-
-            docker stop go-server-prod || true
-            docker rm go-server-prod || true
-
-            docker run --name go-server-prod -d \
-              --restart unless-stopped \
-              -p 8080:8080 \
-              ghcr.io/${{ github.repository_owner }}/go-server:$IMAGE_TAG
-
-            docker image prune -f
+  deploy-prod:
+    name: Deploy to production server
+    needs: get-commit
+    uses: ./.github/workflows/deploy-ssh.yaml
+    with:
+      username: admin
+      container_name: go-server-prod
+      image_tag: dev-${{ needs.get-commit.outputs.commit_hash }}
+      host: ${{ vars.PROD_SERVER_IP }}
+    secrets:
+      ssh_key: ${{ secrets.PROD_SSH_KEY }}
+      ghcr_pat: ${{ secrets.GHCR_PAT }}

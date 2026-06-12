@@ -50,6 +50,9 @@ jobs:
       contents: read
       packages: write
 
+    outputs:
+      sha_short: ${{ steps.vars.outputs.sha_short }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -76,27 +79,13 @@ jobs:
 
   deploy:
     name: Deploy image to staging server
-    runs-on: ubuntu-24.04
     needs: build-image
-
-    steps:
-      - name: SSH into staging server
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{secrets.STAGING_SERVER_IP}}
-          username: ubuntu
-          key: ${{secrets.STAGING_SSH_KEY}}
-
-          script: |
-            echo "${{secrets.GHCR_PAT}}" | docker login ghcr.io -u ${{github.repository_owner}} --password-stdin
-
-            docker pull ghcr.io/${{ github.repository_owner }}/go-server:dev-latest || exit 1
-
-            docker stop go-server || true
-            docker rm go-server || true
-
-            docker run --name go-server -d \
-            --restart unless-stopped \
-            -p 8080:8080 \
-            ghcr.io/${{ github.repository_owner }}/go-server:dev-latest
-            docker image prune -f
+    uses: ./.github/workflows/deploy-ssh.yaml
+    with:
+      username: ubuntu
+      container_name: go-server
+      image_tag: dev-latest
+      host: ${{ vars.STAGING_SERVER_IP }}
+    secrets:
+      ssh_key: ${{ secrets.STAGING_SSH_KEY }}
+      ghcr_pat: ${{ secrets.GHCR_PAT }}
