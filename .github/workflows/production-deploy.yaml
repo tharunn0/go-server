@@ -2,8 +2,6 @@ name: Production Deploy
 
 on:
   push:
-    branches:
-      - main
     tags:
       - "v*"
   workflow_dispatch:
@@ -18,26 +16,16 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Get CI-Matching Hash
-        id: vars
-        run: |
-          echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-
       - name: SSH into Production Server
         uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PROD_SERVER_IP }}
-          username: root
+          username: admin
           key: ${{ secrets.PROD_SSH_KEY }}
           script: |
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
 
-            IMAGE_TAG="dev-${{ steps.vars.outputs.COMMIT_HASH }}"
-
-            docker pull ghcr.io/${{ github.repository_owner }}/go-server:$IMAGE_TAG || exit 1
+            docker pull ghcr.io/${{ github.repository_owner }}/go-server:dev-latest || exit 1
 
             docker stop go-server-prod || true
             docker rm go-server-prod || true
@@ -45,6 +33,6 @@ jobs:
             docker run --name go-server-prod -d \
               --restart unless-stopped \
               -p 80:8080 \
-              ghcr.io/${{ github.repository_owner }}/go-server:$IMAGE_TAG
+              ghcr.io/${{ github.repository_owner }}/go-server:dev-latest
 
             docker image prune -f
