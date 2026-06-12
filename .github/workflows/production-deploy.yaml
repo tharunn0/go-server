@@ -22,7 +22,7 @@ jobs:
         uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PROD_SERVER_IP }}
-          username: ubuntu
+          username: root
           key: ${{ secrets.PROD_SSH_KEY }}
           script: |
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
