@@ -36,13 +36,6 @@ func setupRouter() *gin.Engine {
 		})
 	})
 
-	r.GET("/verion", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"version":   "latest version",
-			"timestamp": time.Now(),
-		})
-	})
-
 	// Route: Users endpoint
 	r.GET("/users", func(c *gin.Context) {
 		users := []gin.H{
